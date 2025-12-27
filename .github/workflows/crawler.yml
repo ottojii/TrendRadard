@@ -2,11 +2,10 @@ name: Daily TrendRadar
 
 on:
   schedule:
-    # UTC 0:00 = 北京时间 早上 8:00
-    # 每天此时运行一次，抓取过去 24 小时(即昨天)的新闻
+    # 每天北京时间早上 8:00 (UTC 0:00) 运行
     - cron: "0 0 * * *"
   
-  # 允许手动测试
+  # 必须有这行，按钮才有效
   workflow_dispatch:
 
 concurrency:
@@ -42,34 +41,26 @@ jobs:
 
       - name: Verify required files
         run: |
+          # 强制检查 config.yaml 是否存在，没有就报错
           if [ ! -f config/config.yaml ]; then
-            echo "Error: Config missing"
+            echo "Error: Config missing. Please rename config.example.yaml to config.yaml"
             exit 1
           fi
 
       - name: Run crawler
         env:
-          # --- AI 配置 ---
+          # 读取 Secrets
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          FEISHU_WEBHOOK_URL: ${{ secrets.FEISHU_WEBHOOK_URL }}
           
-          # --- 存储配置 (自动读取你刚才填的 Backblaze Secrets) ---
+          # 存储配置
           S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
           S3_ENDPOINT_URL: ${{ secrets.S3_ENDPOINT }}
           S3_ACCESS_KEY_ID: ${{ secrets.S3_ACCESS_KEY }}
           S3_SECRET_ACCESS_KEY: ${{ secrets.S3_SECRET_KEY }}
-          # 大部分情况不需要手动填 Region，如果报错再改
-          # S3_REGION: "us-west-004" 
           
-          # --- 系统配置 ---
+          # 系统开关
           GITHUB_ACTIONS: true
           STORAGE_BACKEND: s3
-
-          # --- 推送通道 (保留你用到的那个即可) ---
-          PUSHPLUS_TOKEN: ${{ secrets.PUSHPLUS_TOKEN }}
-          FEISHU_WEBHOOK_URL: ${{ secrets.FEISHU_WEBHOOK_URL }}
-          WEWORK_WEBHOOK_URL: ${{ secrets.WEWORK_WEBHOOK_URL }}
-          DINGTALK_WEBHOOK_URL: ${{ secrets.DINGTALK_WEBHOOK_URL }}
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           
         run: python -m trendradar
